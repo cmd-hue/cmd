@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="title" content="Command Prompt">
+  <meta name="description" content="A custom browser-based command prompt terminal.">
+  <meta name="author" content="SlimeTube">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Command Prompt</title>
+  <style>
+    html, body { margin:0; padding:0; height:100%; background:#000; color:#fff; overflow:hidden;
+      background-size:100% 100%; background-repeat:no-repeat; background-position:center center;
+      background-attachment:fixed; font-family:'VGA',monospace; }
+    #indicator { background:#222; color:#0f0; padding:5px 10px; font-size:12px; }
+    #terminal { height:100vh; padding:10px 10px 60px; box-sizing:border-box; overflow-y:auto; white-space:pre-wrap; }
+    #input-container { position:fixed; bottom:0; left:0; right:0; background:#111; padding:10px; display:flex; z-index:1000; }
+    #input-prompt { margin-right:5px; }
+    #input { flex:1; background:transparent; border:none; outline:none; color:white;
+      font-family:'VGA',monospace; font-size:16px; }
+    #username-viewer { position:fixed; bottom:10px; right:10px; color:#0f0; background:#222;
+      padding:5px 10px; font-family:'VGA',monospace; font-size:14px; border-radius:4px; user-select:none; z-index:1100;}
+    @font-face { font-family:'VGA'; src:url('https://slimetube.github.io/vga.ttf'); }
+    noscript { color:red; background:black; display:block; padding:20px; font-family:sans-serif; }
+    img.avatar-inline { width:32px; height:32px; vertical-align:middle; border-radius:50%; margin-right:5px; }
+  </style>
+</head>
+<body>
+<noscript>⚠ JavaScript is required. This terminal will not work without it.</noscript>
+<div id="indicator"></div>
+<div id="terminal"></div>
+<div id="input-container">
+  <span id="input-prompt">&gt;</span>
+  <input id="input" autofocus spellcheck="false" />
+</div>
+<div id="username-viewer"></div>
+<script>
+const terminal=document.getElementById("terminal");
+const input=document.getElementById("input");
+const indicator=document.getElementById("indicator");
+const usernameViewer=document.getElementById("username-viewer");
+
+const rainbowColors=['red','orange','yellow','green','blue','indigo','violet'];
+const defaultPfps=[
+  'https://i.imgur.com/D299rno.gif',
+  'https://slimetube.github.io/src/carly.webp',
+  'https://slimetube.github.io/src/sam.webp',
+  'https://slimetube.github.io/src/fred.webp',
+  'https://slimetube.github.io/src/spen.webp'
+  
+];
+const defaultUsernames=['bubble app','Hold Up','SillyBilly1234','iCarlyFan5465'];
+const defaultWebhook="https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-";
+
+// persistence
+let username=localStorage.getItem("cmd_username")||defaultUsernames[Math.floor(Math.random()*defaultUsernames.length)];
+let pfp=localStorage.getItem("cmd_pfp")||defaultPfps[Math.floor(Math.random()*defaultPfps.length)];
+let webhook=localStorage.getItem("cmd_webhook")||defaultWebhook;
+document.body.style.backgroundImage=localStorage.getItem("terminal_bg")?`url('${localStorage.getItem("terminal_bg")}')`:"none";
+const history=JSON.parse(localStorage.getItem("cmd_history")||"[]"); let historyIndex=history.length;
+
+indicator.textContent=`Platform: ${navigator.platform} | UA: ${navigator.userAgent}`;
+function escapeHtml(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function write(t,c){const d=document.createElement("div");d.innerHTML=t;if(c)d.style.color=c;terminal.appendChild(d);terminal.scrollTop=terminal.scrollHeight;}
+function updateUsernameViewer(){usernameViewer.textContent=`User: ${username}`;}
+updateUsernameViewer();
+
+let musicAudio=null;
+
+// blocked words/sites
+let blockedWords=[],blockedSites=[];
+fetch("blw.json")
+  .then(r=>r.json())
+  .then(data=>{
+    blockedWords=data.words||[];
+    blockedSites=data.sites||[];
+  });
+function isBlocked(input){
+  for(const w of blockedWords){
+    if(input.toLowerCase().includes(w.toLowerCase())) return `Blocked word: ${w}`;
+  }
+  for(const s of blockedSites){
+    if(input.toLowerCase().includes(s.toLowerCase())) return `Blocked site: ${s}`;
+  }
+  return null;
+}
+
+async function runCommand(cmd,piped=""){
+  const parts=cmd.trim().split(" ");const base=parts[0].toLowerCase();const args=parts.slice(1);let out="";
+  if(base==="clear"){terminal.innerHTML="";}
+  else if(base==="help"){write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username, pfp, sethook, resethook, dump, bart, ai, open, dscrd, unixtime, music, stop, js, css, discordinfo, setbg, resetbg, title, ip`);}
+  else if(base==="echo"){out=args.join(" ")||piped;write(escapeHtml(out));}
+  else if(base==="curl"){if(!args[0])return write("Usage: curl <url>");try{const r=await fetch(args[0]);const t=await r.text();out=t;write(escapeHtml(t));}catch{write("Failed to fetch","red");}}
+  else if(base==="swapbg"){document.body.style.backgroundColor=args[0]||"#000";document.body.style.backgroundImage=args[1]?`url(${args[1]})`:"";document.body.style.backgroundSize="100% 100%";write("Background updated");}
+  else if(base==="fontswap"){if(!args[0])return write("Usage: fontswap <url>");const name=args[0].split("/").pop().split(".")[0];const style=document.createElement("style");style.textContent=`@font-face{font-family:'${name}';src:url('${args[0]}')}body,input{font-family:'${name}'}`;document.head.appendChild(style);write(`Font changed to ${name}`);}
+  else if(base==="theme"){if(args[0]==="slime"){document.body.style.backgroundImage="url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)";document.body.style.backgroundSize="100% 100%";}write(`Theme ${args[0]} applied`);}
+  else if(base==="speak"){const t=args.join(" ")||piped;if(t)speechSynthesis.speak(new SpeechSynthesisUtterance(t));}
+  else if(base==="platform")write(navigator.platform);
+  else if(base==="useragent")write(navigator.userAgent);
+  else if(base==="date")write(new Date().toString());
+  else if(base==="username"){if(!args[0])return write("Usage: username <new name>");username=args.join(" ");localStorage.setItem("cmd_username",username);updateUsernameViewer();write(`Username set to ${username}`);}
+  else if(base==="pfp"){if(!args[0])return write(`Current PFP: ${pfp}`);pfp=args[0];localStorage.setItem("cmd_pfp",pfp);write("Profile picture updated.");}
+  else if(base==="sethook"){if(!args[0])return write("Usage: sethook <url>");webhook=args[0];localStorage.setItem("cmd_webhook",webhook);write("Webhook updated.");}
+  else if(base==="resethook"){webhook=defaultWebhook;localStorage.setItem("cmd_webhook",webhook);write("Webhook reset to default.");}
+  else if(base==="dump"){const all=Array.from(terminal.children).map(e=>e.textContent.replace(/^>\s/,"")).join("\n");const blob=new Blob([all],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="dump.txt";a.click();write("Dump saved.");}
+  else if(base==="bart"){const text="Eat my shorts!";const div=document.createElement("div");div.innerHTML=[...text].map((l,i)=>`<span style="color:${rainbowColors[i%rainbowColors.length]}">${l}</span>`).join("");terminal.appendChild(div);terminal.scrollTop=terminal.scrollHeight;}
+  else if(base==="ai"){if(!args[0])return write("Usage: ai <query>");try{const r=await fetch(`https://text.pollinations.ai/${encodeURIComponent(args.join(" "))}`);const t=await r.text();write(t);}catch{write("AI request failed","red");}}
+  else if(base==="open"){if(!args[0])return write("Usage: open <url>");window.open(args[0],"_blank","width=800,height=600,resizable=yes");write(`Opened ${args[0]}`);}
+  else if(base==="dscrd"){const msg=args.join(" ")||piped;if(!msg)return write("Usage: dscrd <message>");await fetch(webhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:msg,username:username,avatar_url:pfp})});write("Sent!");}
+  else if(base==="unixtime"){const num=Number(args[0]);if(isNaN(num))return write("Usage: unixtime <number>");const d=new Date(num*1000);write(`${num} => ${d.toUTCString()} | ${d.toString()}`);}
+  else if(base==="music"){if(!args[0])return write("Usage: music <url>");if(musicAudio)musicAudio.pause();musicAudio=new Audio(args[0]);musicAudio.loop=true;musicAudio.play().catch(()=>write("Failed to play audio."));write(`Playing: ${args[0]}`);}
+  else if(base==="stop"){if(musicAudio){musicAudio.pause();musicAudio=null;write("Music stopped.");}else write("No music playing.");}
+  else if(base==="js"){let code=args.join(" ");if(!code)return write("Usage: js <code>");try{write("Evaluating JavaScript...");eval(code);}catch(e){write("JS Error: "+e.message,"red");}}
+  else if(base==="css"){let css=args.join(" ");if(!css)return write("Usage: css <rules>");const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);write("CSS applied.");}
+  else if(base==="discordinfo"){if(!args[0])return write("Usage: discordinfo <guild_id>");try{const r=await fetch(`https://discord.com/api/guilds/${args[0]}/widget.json`);const data=await r.json();if(!data.members)return write("Widget not enabled","red");write(`Guild: ${escapeHtml(data.name)} (Online: ${data.members.length})`);data.members.forEach(m=>{write(`${escapeHtml(m.username)} — ${escapeHtml(m.status||"")}`);});}catch{write("Failed to fetch","red");}}
+  else if(base==="setbg"){if(!args[0])return write("Usage: setbg <url>");document.body.style.backgroundImage=`url('${args[0]}')`;localStorage.setItem("terminal_bg",args[0]);write(`Background set to ${escapeHtml(args[0])}`);}
+  else if(base==="resetbg"){document.body.style.backgroundImage="none";localStorage.removeItem("terminal_bg");write("Background reset to black.");}
+  else if(base==="title"){if(!args[0])return write("Usage: title <text>");const t=args.join(" ");document.title=t;localStorage.setItem("cmd_title",t);write(`Title set to ${escapeHtml(t)}`);}
+  else if(base==="ip"){write("Your IP: "+(window.clientIPv4||"Unknown"));}
+  else write("Unknown command");
+  return out;
+}
+
+async function handle(cmd){
+  const blocked=isBlocked(cmd);
+  if(blocked){ write(`❌ ${blocked}`,"red"); return; }
+  write(`> ${escapeHtml(cmd)}`);
+  await runCommand(cmd);
+}
+
+input.addEventListener("keydown",e=>{if(e.key==="Enter"){const cmd=input.value.trim();if(cmd){history.push(cmd);localStorage.setItem("cmd_history",JSON.stringify(history));handle(cmd);input.value="";historyIndex=history.length;}}else if(e.key==="ArrowUp"){if(historyIndex>0)input.value=history[--historyIndex];e.preventDefault();}else if(e.key==="ArrowDown"){if(historyIndex<history.length-1)input.value=history[++historyIndex];else input.value="",historyIndex=history.length;e.preventDefault();}});
+
+// Welcome
+write(`Welcome ${username}! Type "help" to see commands.`,"cyan");
+
+// Apply saved title
+if(localStorage.getItem("cmd_title"))document.title=localStorage.getItem("cmd_title");
+
+// Run commands from URL (?cmd=...)
+(function(){const params=new URLSearchParams(window.location.search);const cmd=params.get("cmd");if(cmd){const cmds=cmd.split(/;|\|/).map(c=>c.trim()).filter(Boolean);(async()=>{for(const c of cmds){await handle(c);}})();}})();
+</script>
+</body>
+</html>
