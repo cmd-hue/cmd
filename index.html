@@ -49,13 +49,13 @@ const defaultPfps=[
   'https://slimetube.github.io/src/spen.webp'
   
 ];
-const defaultUsernames=['bubble app','Hold Up','SillyBilly1234','iCarlyFan5465'];
-const defaultWebhook="https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-";
+const defaultUsernames=['hawk tuah','directv'];
+const defaultWebhook="https://discord.com/api/webhooks/1471715338713305158/kQVbCPZDoJa8QryMhWuRZENT1Awz8RpIHTabfiyPJtCSVZlXFykKtMm5a70jyHrCZsi2-";
 
 // persistence
 let username=localStorage.getItem("cmd_username")||defaultUsernames[Math.floor(Math.random()*defaultUsernames.length)];
 let pfp=localStorage.getItem("cmd_pfp")||defaultPfps[Math.floor(Math.random()*defaultPfps.length)];
-let webhook=localStorage.getItem("cmd_webhook")||defaultWebhook;
+let webhook=defaultWebhook;
 document.body.style.backgroundImage=localStorage.getItem("terminal_bg")?`url('${localStorage.getItem("terminal_bg")}')`:"none";
 const history=JSON.parse(localStorage.getItem("cmd_history")||"[]"); let historyIndex=history.length;
 
@@ -100,8 +100,6 @@ async function runCommand(cmd,piped=""){
   else if(base==="date")write(new Date().toString());
   else if(base==="username"){if(!args[0])return write("Usage: username <new name>");username=args.join(" ");localStorage.setItem("cmd_username",username);updateUsernameViewer();write(`Username set to ${username}`);}
   else if(base==="pfp"){if(!args[0])return write(`Current PFP: ${pfp}`);pfp=args[0];localStorage.setItem("cmd_pfp",pfp);write("Profile picture updated.");}
-  else if(base==="sethook"){if(!args[0])return write("Usage: sethook <url>");webhook=args[0];localStorage.setItem("cmd_webhook",webhook);write("Webhook updated.");}
-  else if(base==="resethook"){webhook=defaultWebhook;localStorage.setItem("cmd_webhook",webhook);write("Webhook reset to default.");}
   else if(base==="dump"){const all=Array.from(terminal.children).map(e=>e.textContent.replace(/^>\s/,"")).join("\n");const blob=new Blob([all],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="dump.txt";a.click();write("Dump saved.");}
   else if(base==="bart"){const text="Eat my shorts!";const div=document.createElement("div");div.innerHTML=[...text].map((l,i)=>`<span style="color:${rainbowColors[i%rainbowColors.length]}">${l}</span>`).join("");terminal.appendChild(div);terminal.scrollTop=terminal.scrollHeight;}
   else if(base==="ai"){if(!args[0])return write("Usage: ai <query>");try{const r=await fetch(`https://text.pollinations.ai/${encodeURIComponent(args.join(" "))}`);const t=await r.text();write(t);}catch{write("AI request failed","red");}}
@@ -131,7 +129,7 @@ async function handle(cmd){
 input.addEventListener("keydown",e=>{if(e.key==="Enter"){const cmd=input.value.trim();if(cmd){history.push(cmd);localStorage.setItem("cmd_history",JSON.stringify(history));handle(cmd);input.value="";historyIndex=history.length;}}else if(e.key==="ArrowUp"){if(historyIndex>0)input.value=history[--historyIndex];e.preventDefault();}else if(e.key==="ArrowDown"){if(historyIndex<history.length-1)input.value=history[++historyIndex];else input.value="",historyIndex=history.length;e.preventDefault();}});
 
 // Welcome
-write(`Welcome ${username}! Type "help" to see commands.`,"cyan");
+write(`Welcome! Type "help" to see commands.`,"cyan");
 
 // Apply saved title
 if(localStorage.getItem("cmd_title"))document.title=localStorage.getItem("cmd_title");
